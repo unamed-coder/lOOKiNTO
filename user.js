@@ -59,7 +59,6 @@
                 const resp = await fetch(url);
                 if (!resp.ok) {
                     throw new Error(`fail to fetch submit records: HTTP code returns ${resp.status} ${resp.statusText}`);
-                    return {};
                 }
                 const rawContent = await resp.json();
                 if (rawContent.code !== 200) {
@@ -70,7 +69,6 @@
             catch (err) {
                 throw new Error(`fail to fetch submit records: ${err}: `);
             }
-            return {};
         }
     };
 

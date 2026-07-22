@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         lOOKiNTO
-// @namespace    http://tampermonkey.net/
+// @namespace    http://github.com/unamed-coder/lOOKiNTO
 // @version      2026-07-20
 // @description  idk
 // @author       unamed-coder
 // @match        https://www.luogu.com.cn/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        GM_addStyle
+// @downloadURL https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js
+// @updateURL https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js
 // ==/UserScript==
 
 (async function () {

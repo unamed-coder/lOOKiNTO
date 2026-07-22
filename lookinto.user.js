@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         lOOKiNTO
 // @namespace    http://github.com/unamed-coder/lOOKiNTO
-// @version      2026-07-20
-// @description  idk
+// @version      1.0.0
+// @description  一个简单至极的 Tampermonkey 脚本，方便查看某个洛谷用户的最后活跃时间。以及其他统计信息（尚未实现）。
 // @author       unamed-coder
 // @match        https://www.luogu.com.cn/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==

@@ -2,7 +2,7 @@
 
 > I consider nobody but Chinese will use the total grap, so unlike to what I will often do, I did not prepare English version REAME.
 
-[![安装脚本](https://img.shields.io/badge/Install%20Script-GreasyFork-orange)](https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js)
+[![安装脚本](https://img.shields.io/badge/%E5%AE%89%E8%A3%85%E8%84%9A%E6%9C%AC-GitHub-orange)](https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js)
 
 ## 概览
 
@@ -14,6 +14,8 @@
 - 在洛谷用户主页：
 
     - 右边的侧边栏信息卡片中添加了**最后一次提交题目**的日期、时间和提交详情超链接。
+
+![](demo/showcase.webp)
 
 没了。
 

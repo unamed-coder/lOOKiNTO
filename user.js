@@ -33,6 +33,10 @@
             COMPILE_ERROR: 2,
             ACCEPTED: 12,
             UNACCEPTED: 14
+        },
+        SELECTOR: {
+            SIDEBAR_CARD_LAST: 'div.l-card:last-child',
+            SIDEBAR_CARD_CONTAINTER: '.side'
         }
     };
 
@@ -68,6 +72,50 @@
             }
             catch (err) {
                 throw new Error(`fail to fetch submit records: ${err}: `);
+            }
+        }
+    };
+
+    const Renderer = {
+        sidebarCard: {
+            getContainer() {
+                const containter = document.querySelector(Literal.SELECTOR.SIDEBAR_CARD_CONTAINTER);
+                if (!containter) {
+                    throw new Error('fail to query sidebar card container element');
+                }
+                return containter;
+            },
+
+            create() {
+                const srcCard = document.querySelector(Literal.SELECTOR.SIDEBAR_CARD_LAST);
+                if (!srcCard) {
+                    throw new Error('fail to query sidebar card element');
+                }
+
+                const cloneCard = document.createElement(srcCard.tagName);
+                for (const attr of srcCard.attributes) {
+                    cloneCard.setAttribute(attr.name, attr.value);
+                }
+                const cardHeader = document.createElement('h3');
+                cardHeader.className = 'lfe-h3';
+                cardHeader.textContent = 'sample';
+                cloneCard.appendChild(cardHeader);
+
+                return cloneCard;
+            },
+
+            createInfoRow(sidebarCard, name, value) {
+                const infoRow = document.createElement('div');
+                infoRow.className = 'l-flex-info-row';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = name;
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'right';
+                valueDiv.textContent = value;
+                infoRow.append(nameSpan, valueDiv);
+
+                return infoRow;
             }
         }
     };

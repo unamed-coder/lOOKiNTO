@@ -9,7 +9,7 @@
 // @grant        GM_addStyle
 // ==/UserScript==
 
-(function () {
+(async function () {
     'use strict';
 
     const Util = {
@@ -21,6 +21,13 @@
                 }
             });
             return url.toString();
+        },
+        secTimestampToDate(timestamp) {
+            const date = new Date(timestamp * 1000);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
     };
 
@@ -86,7 +93,7 @@
                 return containter;
             },
 
-            create() {
+            create(header) {
                 const srcCard = document.querySelector(Literal.SELECTOR.SIDEBAR_CARD_LAST);
                 if (!srcCard) {
                     throw new Error('fail to query sidebar card element');
@@ -98,7 +105,7 @@
                 }
                 const cardHeader = document.createElement('h3');
                 cardHeader.className = 'lfe-h3';
-                cardHeader.textContent = 'sample';
+                cardHeader.textContent = header;
                 cloneCard.appendChild(cardHeader);
 
                 return cloneCard;
@@ -196,4 +203,27 @@
             });
         }
     };
+
+    async function main() {
+        const userHomepagePattern = /^https:\/\/www\.luogu\.com\.cn\/user\/(\d+)$/;
+        const matchResult = window.location.href.match(userHomepagePattern);
+        if (matchResult) {
+            console.log('Matched! now working... ...')
+            const userId = matchResult[1];
+            const submitRecords = await DataCollector.getSubmitRecords(userId);
+            const lastSubmitTimestamp = submitRecords.currentData.records.result[0].submitTime;
+            console.log(lastSubmitTimestamp);
+            const dateStr = Util.secTimestampToDate(lastSubmitTimestamp);
+
+            const container = Renderer.sidebarCard.getContainer();
+            const newCard = Renderer.sidebarCard.create('活动记录');
+            const infoRow = Renderer.sidebarCard.createInfoRow(newCard, '最后一次提交题目', dateStr);
+            newCard.appendChild(infoRow);
+            container.appendChild(newCard);
+
+            console.log('Injected!');
+        }
+    }
+
+    main();
 })();

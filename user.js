@@ -28,12 +28,23 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        },
+        secTimestampToTime(secTimestamp) {
+            const date = new Date(secTimestamp * 1000);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        },
+        buildRecordDetailsUrl(recordId) {
+            return `${Literal.API_BASE_URL.RECORD_DETAILS}${recordId}`;
         }
     };
 
     const Literal = {
         API_BASE_URL: {
-            SUBMIT_RECORDS: "https://www.luogu.com.cn/record/list"
+            SUBMIT_RECORDS: "https://www.luogu.com.cn/record/list",
+            RECORD_DETAILS: "https://www.luogu.com.cn/record/"
         },
         STATUS: {
             ALL: null,
@@ -111,7 +122,7 @@
                 return cloneCard;
             },
 
-            createInfoRow(sidebarCard, name, value) {
+            createInfoRow(sidebarCard, name, value, link = null) {
                 const infoRow = document.createElement('div');
                 infoRow.className = 'l-flex-info-row';
 
@@ -119,7 +130,17 @@
                 nameSpan.textContent = name;
                 const valueDiv = document.createElement('div');
                 valueDiv.className = 'right';
-                valueDiv.textContent = value;
+                if (link) {
+                    const linkA = document.createElement('a');
+                    linkA.textContent = value;
+                    linkA.href = link;
+                    linkA.target = '_blank';
+                    linkA.rel = 'noopener noreferrer'
+                    valueDiv.appendChild(linkA);
+                }
+                else {
+                    valueDiv.textContent = value;
+                }
                 infoRow.append(nameSpan, valueDiv);
 
                 return infoRow;
@@ -213,12 +234,17 @@
             const submitRecords = await DataCollector.getSubmitRecords(userId);
             const lastSubmitTimestamp = submitRecords.currentData.records.result[0].submitTime;
             console.log(lastSubmitTimestamp);
+            const recordId = submitRecords.currentData.records.result[0].id;
             const dateStr = Util.secTimestampToDate(lastSubmitTimestamp);
+            const timeStr = Util.secTimestampToTime(lastSubmitTimestamp);
 
             const container = Renderer.sidebarCard.getContainer();
-            const newCard = Renderer.sidebarCard.create('活动记录');
-            const infoRow = Renderer.sidebarCard.createInfoRow(newCard, '最后一次提交题目', dateStr);
-            newCard.appendChild(infoRow);
+            const newCard = Renderer.sidebarCard.create('最后一次提交题目');
+            const infoRow1 = Renderer.sidebarCard.createInfoRow(newCard, '日期', dateStr);
+            const infoRow2 = Renderer.sidebarCard.createInfoRow(newCard, '时间', timeStr);
+            const infoRow3 = Renderer.sidebarCard.createInfoRow(newCard, '提交详情', recordId, Util.buildRecordDetailsUrl(recordId));
+
+            newCard.append(infoRow1, infoRow2, infoRow3);
             container.appendChild(newCard);
 
             console.log('Injected!');

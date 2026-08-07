@@ -245,6 +245,15 @@
     };
 
     async function main() {
+        await new Promise(resolve => {
+            if (document.readyState === 'complete') {
+                resolve();
+            }
+            else {
+                window.addEventListener('load', resolve, { once: true });
+            }
+        });
+
         const userHomepagePattern = /^https:\/\/www\.luogu\.com\.cn\/user\/(\d+)$/;
         const matchResult = window.location.href.match(userHomepagePattern);
         if (matchResult) {

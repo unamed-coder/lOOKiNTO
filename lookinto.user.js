@@ -105,8 +105,14 @@
                 }
                 return containter;
             },
+        },
+        SidebarCard: class {
+            constructor(header) {
+                this.element = this._createCard(header);
+                this.infoRows = [];
+            }
 
-            create(header) {
+            _createCard(header) {
                 const srcCard = document.querySelector(Literal.SELECTOR.SIDEBAR_CARD_LAST);
                 if (!srcCard) {
                     throw new Error('fail to query sidebar card element');
@@ -116,36 +122,47 @@
                 for (const attr of srcCard.attributes) {
                     cloneCard.setAttribute(attr.name, attr.value);
                 }
+
                 const cardHeader = document.createElement('h3');
                 cardHeader.className = 'lfe-h3';
                 cardHeader.textContent = header;
                 cloneCard.appendChild(cardHeader);
 
                 return cloneCard;
-            },
+            }
 
-            createInfoRow(sidebarCard, name, value, link = null) {
+            addInfoRow(name, value, link = null) {
                 const infoRow = document.createElement('div');
                 infoRow.className = 'l-flex-info-row';
 
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = name;
+
                 const valueDiv = document.createElement('div');
                 valueDiv.className = 'right';
+
                 if (link) {
                     const linkA = document.createElement('a');
                     linkA.textContent = value;
                     linkA.href = link;
                     linkA.target = '_blank';
-                    linkA.rel = 'noopener noreferrer'
+                    linkA.rel = 'noopener noreferrer';
                     valueDiv.appendChild(linkA);
                 }
                 else {
                     valueDiv.textContent = value;
                 }
-                infoRow.append(nameSpan, valueDiv);
 
-                return infoRow;
+                infoRow.append(nameSpan, valueDiv);
+                this.element.appendChild(infoRow);
+                this.infoRows.push({ name, value, link });
+
+                return this;
+            }
+
+            appendTo(container) {
+                container.appendChild(this.element);
+                return this;
             }
         }
     };
@@ -241,13 +258,11 @@
             const timeStr = Util.secTimestampToTime(lastSubmitTimestamp);
 
             const container = Renderer.sidebarCard.getContainer();
-            const newCard = Renderer.sidebarCard.create('最后一次提交题目');
-            const infoRow1 = Renderer.sidebarCard.createInfoRow(newCard, '日期', dateStr);
-            const infoRow2 = Renderer.sidebarCard.createInfoRow(newCard, '时间', timeStr);
-            const infoRow3 = Renderer.sidebarCard.createInfoRow(newCard, '提交详情', recordId, Util.buildRecordDetailsUrl(recordId));
-
-            newCard.append(infoRow1, infoRow2, infoRow3);
-            container.appendChild(newCard);
+            new Renderer.SidebarCard('最后一次提交题目')
+                .addInfoRow('日期', dateStr)
+                .addInfoRow('时间', timeStr)
+                .addInfoRow('提交详情', recordId, Util.buildRecordDetailsUrl(recordId))
+                .appendTo(container);
 
             console.log('Injected!');
         }

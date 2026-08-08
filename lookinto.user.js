@@ -80,7 +80,8 @@
         SELECTOR: {
             SIDEBAR_CARD_LAST: 'div.l-card:last-child',
             SIDEBAR_CARD_CONTAINTER: '.side',
-            USER_INFO_CONTAINER: '.sidebar-container'
+            USER_INFO_CONTAINER: '.sidebar-container',
+            USER_INFO_MAIN: '.sidebar-container > div:nth-child(1)'
         },
         EXTERNAL_CDN_RESOURCES_URL: {
             HIGHCHARTS: 'https://cdn.jsdelivr.net/npm/highcharts@13.0.0/highcharts.min.js'
@@ -133,6 +134,27 @@
                 return containter;
             },
         },
+        userInfo: {
+            getContainer() {
+                const containter = document.querySelector(Literal.SELECTOR.USER_INFO_CONTAINER);
+                if (!containter) {
+                    throw new Error('fail to query user info container element');
+                }
+                return containter;
+            },
+
+
+            setDisplay(shown) {
+                const container = document.querySelector(Literal.SELECTOR.USER_INFO_CONTAINER);
+                if (!container) {
+                    throw new Error('fail to query user info container element');
+                }
+
+                if (shown) container.style.display = '';
+                else container.style.display = 'none';
+            },
+        },
+
         SidebarCard: class {
             constructor(header) {
                 this.element = this._createCard(header);
@@ -185,6 +207,40 @@
                 this.infoRows.push({ name, value, link });
 
                 return this;
+            }
+
+            appendTo(container) {
+                container.appendChild(this.element);
+                return this;
+            }
+        },
+        UserInfo: class {
+            constructor() {
+                this.element = this._createUserInfo();
+            }
+
+            _createUserInfo() {
+                const srcInfo = document.querySelector(Literal.SELECTOR.USER_INFO_CONTAINER);
+                const srcMain = document.querySelector(Literal.SELECTOR.USER_INFO_MAIN);
+                if (!srcInfo) {
+                    throw new Error('fail to query user info element');
+                }
+                if (!srcMain) {
+                    throw new Error('fail to query user info main element');
+                }
+
+                const cloneInfo = document.createElement(srcInfo.tagName);
+                const cloneMain = document.createElement(srcMain.tagName);
+                for (const attr of srcInfo.attributes) {
+                    cloneInfo.setAttribute(attr.name, attr.value);
+                }
+                for (const attr of srcMain.attributes) {
+                    cloneMain.setAttribute(attr.name, attr.value);
+                }
+
+                cloneInfo.appendChild(cloneMain);
+
+                return cloneInfo;
             }
 
             appendTo(container) {
@@ -296,12 +352,30 @@
             const dateStr = Util.secTimestampToDate(lastSubmitTimestamp);
             const timeStr = Util.secTimestampToTime(lastSubmitTimestamp);
 
-            const container = Renderer.sidebarCard.getContainer();
+            const chartContainer = new Renderer.UserInfo()
+                .appendTo(Renderer.userInfo.getContainer());
+            Highcharts.chart(chartContainer.element, {
+                chart: {
+                    type: 'column'
+                },
+                title: {
+                    text: '近7天提交记录'
+                },
+                xAxis: {
+                    categories: ['第一天', '第二天', '第三天', '第四天', '第五天', '第六天', '第七天']
+                },
+                series: [{
+                    name: '提交次数',
+                    data: [12, 19, 3, 17, 28, 24, 22]
+                }]
+            });
+            // Renderer.userInfo.setDisplay(false);
+
             new Renderer.SidebarCard('最后一次提交题目')
                 .addInfoRow('日期', dateStr)
                 .addInfoRow('时间', timeStr)
                 .addInfoRow('提交详情', recordId, Util.buildRecordDetailsUrl(recordId))
-                .appendTo(container);
+                .appendTo(Renderer.sidebarCard.getContainer());
 
             console.log('Injected!');
         }

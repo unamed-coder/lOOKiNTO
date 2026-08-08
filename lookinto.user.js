@@ -7,8 +7,10 @@
 // @match        https://www.luogu.com.cn/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        GM_addStyle
-// @downloadURL https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js
-// @updateURL https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js
+// @grant        GM_xmlhttpRequest
+// @connect      cdn.jsdelivr.net
+// @downloadURL  https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js
+// @updateURL    https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/lookinto.user.js
 // ==/UserScript==
 
 (async function () {
@@ -40,6 +42,27 @@
         },
         buildRecordDetailsUrl(recordId) {
             return `${Literal.API_BASE_URL.RECORD_DETAILS}${recordId}`;
+        },
+        loadHighcharts() {
+            return new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: Literal.EXTERNAL_CDN_RESOURCES_URL.HIGHCHARTS,
+                    onload: function (response) {
+                        const script = document.createElement('script');
+                        script.textContent = response.responseText;
+                        document.head.appendChild(script);
+
+                        if (typeof Highcharts === 'undefined') {
+                            reject(new Error('highcharts is undefined after it was loaded'));
+                            return;
+                        }
+
+                        resolve();
+                    },
+                    onerror: (err) => reject(new Error('fail to load external resources: highcharts'))
+                });
+            });
         }
     };
 
@@ -56,7 +79,11 @@
         },
         SELECTOR: {
             SIDEBAR_CARD_LAST: 'div.l-card:last-child',
-            SIDEBAR_CARD_CONTAINTER: '.side'
+            SIDEBAR_CARD_CONTAINTER: '.side',
+            USER_INFO_CONTAINER: '.sidebar-container'
+        },
+        EXTERNAL_CDN_RESOURCES_URL: {
+            HIGHCHARTS: 'https://cdn.jsdelivr.net/npm/highcharts@13.0.0/highcharts.min.js'
         }
     };
 
@@ -258,6 +285,9 @@
         const matchResult = window.location.href.match(userHomepagePattern);
         if (matchResult) {
             console.log('Matched! now working... ...')
+
+            await Util.loadHighcharts();
+
             const userId = matchResult[1];
             const submitRecords = await DataCollector.getSubmitRecords(userId);
             const lastSubmitTimestamp = submitRecords.currentData.records.result[0].submitTime;

@@ -77,6 +77,27 @@
             ACCEPTED: 12,
             UNACCEPTED: 14
         },
+        DIFFICULTY_ID: [1, 2, 3, 4, 5, 6, 7, 8],
+        DIFFICULTY: {
+            1: "入门",
+            2: "普及-",
+            3: "普及",
+            4: "普及+/提高-",
+            5: "提高",
+            6: "提高+/省选-",
+            7: "省选/NOI−",
+            8: "NOI/NOI+/CTS"
+        },
+        DIFFICULTY_COLOR: {
+            1: '#FE4C61',
+            2: '#F39C11',
+            3: '#FFC116',
+            4: '#53C41A',
+            5: '#13C2C2',
+            6: '#3498DB',
+            7: '#9D3DCF',
+            8: '#0E1D69'
+        },
         SELECTOR: {
             SIDEBAR_CARD_LAST: 'div.l-card:last-child',
             SIDEBAR_CARD_CONTAINTER: '.side',
@@ -122,6 +143,40 @@
             catch (err) {
                 throw new Error(`fail to fetch submit records: ${err}: `);
             }
+        },
+
+        getRecent24HoursSubmitStats(rawContent) {
+            const allResults = rawContent?.currentData?.records?.result;
+            const currentTime = Math.floor(Date.now() / 1000);
+
+            if (!allResults) {
+                return {};
+            }
+
+            const twentyFourHoursAgo = currentTime - 24 * 3600;
+
+            const submitStats = {};
+            for (let hourOffset = 0; hourOffset < 24; ++hourOffset) {
+                submitStats[hourOffset] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
+            }
+
+            for (const result of allResults) {
+                const submitTime = result?.submitTime;
+                const difficulty = result?.problem?.difficulty;
+
+                if (!submitTime || !difficulty) continue;
+                if (submitTime < twentyFourHoursAgo || submitTime > currentTime) continue;
+
+                const hoursAgo = Math.floor((currentTime - submitTime) / 3600);
+                const hourOffset = Math.min(hoursAgo, 23);
+
+                if (difficulty >= 1 && difficulty <= 8) {
+                    ++submitStats[hourOffset][difficulty];
+                    console.debug(`${hourOffset}th hour, ${difficulty} difficulty`);
+                }
+            }
+
+            return submitStats;
         }
     };
 
@@ -387,39 +442,89 @@
             await Util.loadHighcharts();
 
             const userId = matchResult[1];
-            const submitRecords = await DataCollector.getSubmitRecords(userId);
-            const lastSubmitTimestamp = submitRecords.currentData.records.result[0].submitTime;
-            console.log(lastSubmitTimestamp);
-            const recordId = submitRecords.currentData.records.result[0].id;
-            const dateStr = Util.secTimestampToDate(lastSubmitTimestamp);
-            const timeStr = Util.secTimestampToTime(lastSubmitTimestamp);
+            const rawContent = await DataCollector.getSubmitRecords(userId);
 
-            new Renderer.SidebarCard('最后一次提交题目')
-                .addInfoRow('日期', dateStr)
-                .addInfoRow('时间', timeStr)
-                .addInfoRow('提交详情', recordId, Util.buildRecordDetailsUrl(recordId))
-                .appendTo(Renderer.sidebarCard.getContainer());
+            // last submit info
+            {
+                const lastSubmitTimestamp = rawContent.currentData.records.result[0].submitTime;
+                const recordId = rawContent.currentData.records.result[0].id;
+                const dateStr = Util.secTimestampToDate(lastSubmitTimestamp);
+                const timeStr = Util.secTimestampToTime(lastSubmitTimestamp);
 
-            const chartCard = new Renderer.UserInfoCard('近7日提交情况', '悬浮指针以查看详情')
-                .appendTo(Renderer.userInfo.getContainer())
+                new Renderer.SidebarCard('最后一次提交题目')
+                    .addInfoRow('日期', dateStr)
+                    .addInfoRow('时间', timeStr)
+                    .addInfoRow('提交详情', recordId, Util.buildRecordDetailsUrl(recordId))
+                    .appendTo(Renderer.sidebarCard.getContainer());
+            }
 
-            const chartContainer = document.createElement('div');
-            chartContainer.id = 'lookinto-chart'
-            chartContainer.style.height = '300px';
-            chartContainer.style.width = '100%';
-            chartCard.element.appendChild(chartContainer);
-            Highcharts.chart('lookinto-chart', {
-                chart: {
-                    type: 'column'
-                },
-                xAxis: {
-                    categories: ['第一天', '第二天', '第三天', '第四天', '第五天', '第六天', '第七天']
-                },
-                series: [{
-                    name: '提交次数',
-                    data: [12, 19, 3, 17, 28, 24, 22]
-                }]
-            });
+            // recent 24 hours submit info
+            {
+                const chartCard = new Renderer.UserInfoCard('活动情况', '悬浮指针以查看详情')
+                    .appendTo(Renderer.userInfo.getContainer())
+
+                const chartContainer = document.createElement('div');
+                chartContainer.id = 'lookinto-chart'
+                chartContainer.style.height = '300px';
+                chartContainer.style.width = '100%';
+                chartCard.element.appendChild(chartContainer);
+
+                const recent24HStats = DataCollector.getRecent24HoursSubmitStats(rawContent);
+                const categories = [];
+                for (let h = 23; h >= 0; --h) {
+                    categories.push(h === 0 ? '近1小时' : `${h}小时前`);
+                }
+                const series = Literal.DIFFICULTY_ID.map(d => ({
+                    name: `${Literal.DIFFICULTY[d]}`,
+                    color: Literal.DIFFICULTY_COLOR[d],
+                    data: categories.map((_, idx) => {
+                        const hourOffset = 23 - idx;
+                        return recent24HStats[hourOffset]?.[d] ?? 0;
+                    })
+                }));
+
+                Highcharts.chart('lookinto-chart', {
+                    chart: { type: 'column' },
+                    title: { text: '最近24小时提交分布' },
+                    xAxis: {
+                        categories,
+                        crosshair: true
+                    },
+                    yAxis: {
+                        min: 0,
+                        title: { text: '提交次数' },
+                        stackLabels: {
+                            enabled: true,
+                            format: '{total}'
+                        }
+                    },
+                    legend: { enabled: true },
+                    tooltip: {
+                        shared: false,
+                        useHTML: true,
+                        formatter() {
+                            const hourTotal = this.point.stackTotal;
+                            const diffCount = this.point.y;
+                            const diff = this.series.name;
+                            return `
+        <b>${this.x - 2}时</b><br/>
+        总计：<b>${hourTotal}</b><br/>
+        ${diff}：<b>${diffCount}</b>
+      `;
+                        }
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: 'normal',
+                            borderWidth: 0,
+                            dataLabels: { enabled: false }
+                        }
+                    },
+                    series
+                });
+                // FIXME: incorrect displaying of hour in chart
+                // FIXME: old data used unless force reloading
+            }
 
             console.log('Injected!');
         }

@@ -81,7 +81,8 @@
             SIDEBAR_CARD_LAST: 'div.l-card:last-child',
             SIDEBAR_CARD_CONTAINTER: '.side',
             USER_INFO_CONTAINER: '.sidebar-container',
-            USER_INFO_MAIN: '.sidebar-container > div:nth-child(1)'
+            USER_INFO_MAIN: '.sidebar-container > .main',
+            USER_INFO_LCARD_LAST: '.sidebar-container > .main > div:last-child'
         },
         EXTERNAL_CDN_RESOURCES_URL: {
             HIGHCHARTS: 'https://cdn.jsdelivr.net/npm/highcharts@13.0.0/highcharts.min.js'
@@ -136,7 +137,7 @@
         },
         userInfo: {
             getContainer() {
-                const containter = document.querySelector(Literal.SELECTOR.USER_INFO_CONTAINER);
+                const containter = document.querySelector(Literal.SELECTOR.USER_INFO_MAIN);
                 if (!containter) {
                     throw new Error('fail to query user info container element');
                 }
@@ -145,7 +146,7 @@
 
 
             setDisplay(shown) {
-                const container = document.querySelector(Literal.SELECTOR.USER_INFO_CONTAINER);
+                const container = document.querySelector(Literal.SELECTOR.USER_INFO_MAIN);
                 if (!container) {
                     throw new Error('fail to query user info container element');
                 }
@@ -241,6 +242,47 @@
                 cloneInfo.appendChild(cloneMain);
 
                 return cloneInfo;
+            }
+
+            appendTo(container) {
+                container.appendChild(this.element);
+                return this;
+            }
+        },
+        UserInfoCard: class {
+            constructor(header, headerCaption) {
+                this.element = this._createUserInfoCard(header, headerCaption);
+            }
+
+            _createUserInfoCard(header, headerCaption) {
+                const srcLCard = document.querySelector(Literal.SELECTOR.USER_INFO_LCARD_LAST);
+                if (!srcLCard) {
+                    throw new Error('fail to query user info .l-card element');
+                }
+
+                const cloneLCard = document.createElement(srcLCard.tagName);
+                for (const attr of srcLCard.attributes) {
+                    cloneLCard.setAttribute(attr.name, attr.value);
+                }
+
+                const lCardHeader = document.createElement('div');
+                lCardHeader.className = 'header';
+                lCardHeader.style.display = 'flex';
+                lCardHeader.style.justifyContent = 'space-between';
+                lCardHeader.style.alignItems = 'center';
+
+                const headerH3 = document.createElement('h3');
+                headerH3.className = 'lfe-h3';
+                headerH3.textContent = header;
+                const captionSpan = document.createElement('span');
+                captionSpan.className = 'lfe-caption';
+                captionSpan.textContent = headerCaption;
+
+                lCardHeader.appendChild(headerH3);
+                lCardHeader.appendChild(captionSpan);
+                cloneLCard.appendChild(lCardHeader);
+
+                return cloneLCard;
             }
 
             appendTo(container) {
@@ -352,14 +394,23 @@
             const dateStr = Util.secTimestampToDate(lastSubmitTimestamp);
             const timeStr = Util.secTimestampToTime(lastSubmitTimestamp);
 
-            const chartContainer = new Renderer.UserInfo()
-                .appendTo(Renderer.userInfo.getContainer());
-            Highcharts.chart(chartContainer.element, {
+            new Renderer.SidebarCard('最后一次提交题目')
+                .addInfoRow('日期', dateStr)
+                .addInfoRow('时间', timeStr)
+                .addInfoRow('提交详情', recordId, Util.buildRecordDetailsUrl(recordId))
+                .appendTo(Renderer.sidebarCard.getContainer());
+
+            const chartCard = new Renderer.UserInfoCard('近7日提交情况', '悬浮指针以查看详情')
+                .appendTo(Renderer.userInfo.getContainer())
+
+            const chartContainer = document.createElement('div');
+            chartContainer.id = 'lookinto-chart'
+            chartContainer.style.height = '300px';
+            chartContainer.style.width = '100%';
+            chartCard.element.appendChild(chartContainer);
+            Highcharts.chart('lookinto-chart', {
                 chart: {
                     type: 'column'
-                },
-                title: {
-                    text: '近7天提交记录'
                 },
                 xAxis: {
                     categories: ['第一天', '第二天', '第三天', '第四天', '第五天', '第六天', '第七天']
@@ -369,13 +420,6 @@
                     data: [12, 19, 3, 17, 28, 24, 22]
                 }]
             });
-            // Renderer.userInfo.setDisplay(false);
-
-            new Renderer.SidebarCard('最后一次提交题目')
-                .addInfoRow('日期', dateStr)
-                .addInfoRow('时间', timeStr)
-                .addInfoRow('提交详情', recordId, Util.buildRecordDetailsUrl(recordId))
-                .appendTo(Renderer.sidebarCard.getContainer());
 
             console.log('Injected!');
         }

@@ -145,38 +145,43 @@
             }
         },
 
-        getRecent24HoursSubmitStats(rawContent) {
-            const allResults = rawContent?.currentData?.records?.result;
-            const currentTime = Math.floor(Date.now() / 1000);
+        get24HourStats(rawContent) {
+            const results = rawContent?.currentData?.records?.result;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const currentHourTs = Math.floor(nowSec / 3600) * 3600;
+            const startHourTs = currentHourTs - 23 * 3600;
 
-            if (!allResults) {
-                return {};
+            const buckets = [];
+            for (let i = 0; i < 24; i++) {
+                const hourTs = startHourTs + i * 3600;
+                const d = new Date(hourTs * 1000);
+                const now = new Date(currentHourTs * 1000);
+                const isToday = d.getFullYear() === now.getFullYear()
+                    && d.getMonth() === now.getMonth()
+                    && d.getDate() === now.getDate();
+
+                buckets.push({
+                    hourTs,
+                    label: `${isToday ? '' : '昨天'} ${String(d.getHours()).padStart(2, '0')}:00`,
+                    counts: Array.from({ length: 8 }, () => 0)
+                });
             }
 
-            const twentyFourHoursAgo = currentTime - 24 * 3600;
+            if (!results) return buckets;
 
-            const submitStats = {};
-            for (let hourOffset = 0; hourOffset < 24; ++hourOffset) {
-                submitStats[hourOffset] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
+            for (const r of results) {
+                const t = r.submitTime;
+                const d = r.problem?.difficulty;
+                if (!t || d < 1 || d > 8) continue;
+
+                const submitHourTs = Math.floor(t / 3600) * 3600;
+                if (submitHourTs < startHourTs || submitHourTs > currentHourTs) continue;
+
+                const bucket = buckets.find(b => b.hourTs === submitHourTs);
+                if (bucket) bucket.counts[d - 1]++;
             }
 
-            for (const result of allResults) {
-                const submitTime = result?.submitTime;
-                const difficulty = result?.problem?.difficulty;
-
-                if (!submitTime || !difficulty) continue;
-                if (submitTime < twentyFourHoursAgo || submitTime > currentTime) continue;
-
-                const hoursAgo = Math.floor((currentTime - submitTime) / 3600);
-                const hourOffset = Math.min(hoursAgo, 23);
-
-                if (difficulty >= 1 && difficulty <= 8) {
-                    ++submitStats[hourOffset][difficulty];
-                    console.debug(`${hourOffset}th hour, ${difficulty} difficulty`);
-                }
-            }
-
-            return submitStats;
+            return buckets;
         }
     };
 
@@ -469,61 +474,47 @@
                 chartContainer.style.width = '100%';
                 chartCard.element.appendChild(chartContainer);
 
-                const recent24HStats = DataCollector.getRecent24HoursSubmitStats(rawContent);
+                const recent24HStats = DataCollector.get24HourStats(rawContent);
+                const nowHour = Math.floor(Date.now() / 1000 / 3600);
+                const startHour = nowHour - 23;
                 const categories = [];
-                for (let h = 23; h >= 0; --h) {
-                    categories.push(h === 0 ? '近1小时' : `${h}小时前`);
+                for (let h = startHour; h <= nowHour; ++h) {
+                    const label = `${String(h % 24).padStart(2, '0')}:00`;
+                    categories.push(label);
                 }
                 const series = Literal.DIFFICULTY_ID.map(d => ({
-                    name: `${Literal.DIFFICULTY[d]}`,
+                    name: Literal.DIFFICULTY[d],
                     color: Literal.DIFFICULTY_COLOR[d],
-                    data: categories.map((_, idx) => {
-                        const hourOffset = 23 - idx;
-                        return recent24HStats[hourOffset]?.[d] ?? 0;
-                    })
+                    data: categories.map(label => recent24HStats[label]?.[d - 1] ?? 0)
                 }));
 
                 Highcharts.chart('lookinto-chart', {
                     chart: { type: 'column' },
-                    title: { text: '最近24小时提交分布' },
+                    title: { text: '最近 24 小时提交分布' },
                     xAxis: {
-                        categories,
+                        categories: recent24HStats.map(b => b.label),
                         crosshair: true
                     },
                     yAxis: {
                         min: 0,
                         title: { text: '提交次数' },
-                        stackLabels: {
-                            enabled: true,
-                            format: '{total}'
-                        }
+                        stackLabels: { enabled: true, format: '{total}' }
                     },
-                    legend: { enabled: true },
                     tooltip: {
-                        shared: false,
                         useHTML: true,
                         formatter() {
-                            const hourTotal = this.point.stackTotal;
-                            const diffCount = this.point.y;
-                            const diff = this.series.name;
-                            return `
-        <b>${this.x - 2}时</b><br/>
-        总计：<b>${hourTotal}</b><br/>
-        ${diff}：<b>${diffCount}</b>
-      `;
+                            return `<b>${this.x}</b><br/>总计：${this.point.stackTotal}<br/>${this.series.name}：${this.point.y}`;
                         }
                     },
                     plotOptions: {
-                        column: {
-                            stacking: 'normal',
-                            borderWidth: 0,
-                            dataLabels: { enabled: false }
-                        }
+                        column: { stacking: 'normal', borderWidth: 0 }
                     },
-                    series
+                    series: [1, 2, 3, 4, 5, 6, 7, 8].map(d => ({
+                        name: Literal.DIFFICULTY[d],
+                        color: Literal.DIFFICULTY_COLOR[d],
+                        data: recent24HStats.map(b => b.counts[d - 1])
+                    }))
                 });
-                // FIXME: incorrect displaying of hour in chart
-                // FIXME: old data used unless force reloading
             }
 
             console.log('Injected!');

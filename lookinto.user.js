@@ -5,7 +5,7 @@
 // @description  一个简单至极的 Tampermonkey 脚本，方便查看洛谷用户更多详细的统计信息。
 // @author       unamed-coder
 // @match        https://www.luogu.com.cn/*
-// @icon         https://cdn.jsdelivr.net/gh/unamed-coder/lOOKiNTO/assets/icon.png
+// @icon         https://gh-proxy.org/https://raw.githubusercontent.com/unamed-coder/lOOKiNTO/main/assets/icon.png
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @connect      cdn.jsdelivr.net

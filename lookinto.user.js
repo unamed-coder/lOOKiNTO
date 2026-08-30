@@ -77,8 +77,9 @@
             ACCEPTED: 12,
             UNACCEPTED: 14
         },
-        DIFFICULTY_ID: [1, 2, 3, 4, 5, 6, 7, 8],
+        DIFFICULTY_ID: [0, 1, 2, 3, 4, 5, 6, 7, 8],
         DIFFICULTY: {
+            0: "暂无评定",
             1: "入门",
             2: "普及-",
             3: "普及",
@@ -89,6 +90,7 @@
             8: "NOI/NOI+/CTS"
         },
         DIFFICULTY_COLOR: {
+            0: '#BFBFBF',
             1: '#FE4C61',
             2: '#F39C11',
             3: '#FFC116',
@@ -163,7 +165,7 @@
                 buckets.push({
                     hourTs,
                     label: `${isToday ? '' : '昨天'} ${String(d.getHours()).padStart(2, '0')}:00`,
-                    counts: Array.from({ length: 8 }, () => 0)
+                    counts: Array.from({ length: 9 }, () => 0)
                 });
             }
 
@@ -172,13 +174,13 @@
             for (const r of results) {
                 const t = r.submitTime;
                 const d = r.problem?.difficulty;
-                if (!t || d < 1 || d > 8) continue;
+                if (!t || d < 0 || d > 8) continue;
 
                 const submitHourTs = Math.floor(t / 3600) * 3600;
                 if (submitHourTs < startHourTs || submitHourTs > currentHourTs) continue;
 
                 const bucket = buckets.find(b => b.hourTs === submitHourTs);
-                if (bucket) bucket.counts[d - 1]++;
+                if (bucket) bucket.counts[d]++;
             }
 
             return buckets;
@@ -509,10 +511,10 @@
                     plotOptions: {
                         column: { stacking: 'normal', borderWidth: 0 }
                     },
-                    series: [1, 2, 3, 4, 5, 6, 7, 8].map(d => ({
+                    series: Literal.DIFFICULTY_ID.map(d => ({
                         name: Literal.DIFFICULTY[d],
                         color: Literal.DIFFICULTY_COLOR[d],
-                        data: recent24HStats.map(b => b.counts[d - 1])
+                        data: recent24HStats.map(b => b.counts[d])
                     }))
                 });
             }
